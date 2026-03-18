@@ -1,0 +1,80 @@
+# Number of replicas - overridden by HPA when enabled
+replicaCount: 2
+
+image:
+  repository: kcn333/clients-api
+  pullPolicy: IfNotPresent
+  # Overrides appVersion when set
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Spring Boot profile
+springProfile: prod
+
+# Database connection
+database:
+  host: clients-db-rw
+  port: 5432
+  name: clients
+  credentialsSecret: clients-db-credentials
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+  # Named port - required by ServiceMonitor
+  name: http
+
+ingress:
+  enabled: true
+  className: traefik
+  host: clients-api.cluster.kcn333.com
+  tlsSecret: local-prod-kcn333-tls
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 2000m
+    memory: 512Mi
+
+livenessProbe:
+  httpGet:
+    path: /actuator/health/liveness
+    port: 8080
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /actuator/health/readiness
+    port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  failureThreshold: 3
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+
+pdb:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true
+
+serviceMonitor:
+  enabled: true
+  namespace: monitoring
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

@@ -1,0 +1,7 @@
+1. Application URL:
+{{- if .Values.ingress.enabled }}
+   https://{{ .Values.ingress.host }}
+{{- else }}
+   kubectl port-forward svc/{{ include "clients-api.fullname" . }} 8080:{{ .Values.service.port }} -n {{ .Release.Namespace }}
+   http://localhost:8080
+{{- end }}

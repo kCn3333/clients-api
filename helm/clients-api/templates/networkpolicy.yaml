@@ -1,0 +1,40 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "clients-api.fullname" . }}-allow-ingress
+  labels:
+    {{- include "clients-api.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "clients-api.selectorLabels" . | nindent 6 }}
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+  policyTypes:
+    - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "clients-api.fullname" . }}-allow-db
+  labels:
+    {{- include "clients-api.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      cnpg.io/cluster: {{ include "clients-api.fullname" . | replace "clients-api" "clients-db" }}
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "clients-api.selectorLabels" . | nindent 14 }}
+  policyTypes:
+    - Ingress
+{{- end }}
