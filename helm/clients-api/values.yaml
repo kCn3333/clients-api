@@ -19,7 +19,7 @@ database:
   host: clients-db-rw
   port: 5432
   name: clients
-  credentialsSecret: clients-db-credentials
+  credentialsSecret: clients-db-secret
 
 service:
   type: ClusterIP
