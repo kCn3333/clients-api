@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "clients-api.fullname" . }}-test"
+  labels:
+    {{- include "clients-api.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: test
+      image: curlimages/curl:8.5.0
+      command:
+        - sh
+        - -c
+        - |
+          echo "Testing health endpoint..."
+          curl -sf http://{{ include "clients-api.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local/actuator/health/readiness
+          echo ""
+          echo "Testing API endpoint..."
+          curl -sf -u user:user http://{{ include "clients-api.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local/api/clients
+          echo ""
+          echo "All tests passed!"
