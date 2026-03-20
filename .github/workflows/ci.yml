@@ -11,6 +11,7 @@ on:
 env:
   IMAGE_NAME: kcn333/clients-api
   CHART_REGISTRY: ghcr.io/kcn3333/charts
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   test:
