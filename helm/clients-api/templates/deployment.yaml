@@ -35,6 +35,7 @@ spec:
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: {{ .Values.springProfile | quote }}
+            {{- if .Values.database.credentialsSecret }}
             - name: SPRING_DATASOURCE_URL
               value: "jdbc:postgresql://{{ .Values.database.host }}:{{ .Values.database.port }}/{{ .Values.database.name }}"
             - name: SPRING_DATASOURCE_USERNAME
@@ -47,6 +48,7 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.database.credentialsSecret }}
                   key: password
+            {{- end }}
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
           readinessProbe:
