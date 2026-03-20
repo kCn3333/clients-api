@@ -10,6 +10,7 @@ on:
 
 env:
   IMAGE_NAME: kcn333/clients-api
+  CHART_REGISTRY: ghcr.io/kcn3333/charts
 
 jobs:
   test:
@@ -32,8 +33,8 @@ jobs:
   build-and-push:
     name: Build & Push Docker image
     runs-on: ubuntu-latest
-    needs: test                        # ← tylko gdy testy przejdą
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') # ← tylko na main, nie na PR
+    needs: test
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
 
     outputs:
       image-tag: ${{ steps.meta.outputs.version }}
@@ -69,5 +70,44 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha        # ← cache warstw Docker w GitHub Actions
+          cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  publish-chart:
+    name: Publish Helm Chart to GHCR
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: startsWith(github.ref, 'refs/tags/v')  # ← only for tags, no main
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Update chart version and appVersion
+        run: |
+          sed -i "s/^version:.*/version: ${{ steps.version.outputs.VERSION }}/" helm/clients-api/Chart.yaml
+          sed -i "s/^appVersion:.*/appVersion: \"${{ steps.version.outputs.VERSION }}\"/" helm/clients-api/Chart.yaml
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Package and push chart
+        run: |
+          helm package helm/clients-api
+          helm push clients-api-${{ steps.version.outputs.VERSION }}.tgz oci://${{ env.CHART_REGISTRY }}
+
+      - name: Verify chart was pushed
+        run: |
+          helm show chart oci://${{ env.CHART_REGISTRY }}/clients-api \
+            --version ${{ steps.version.outputs.VERSION }}
